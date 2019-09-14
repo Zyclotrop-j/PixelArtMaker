@@ -68,3 +68,47 @@ submitButton.addEventListener("click", function(event) {
   event.preventDefault();
   makeGrid();
 });
+
+
+// Const
+const pixelCanvas = document.querySelector("#pixelCanvas");
+const canvas = document.createElement("canvas");
+const context = canvas.getContext('2d');
+const drawing = new Image();
+
+// Helper
+const getPixel = (x, y, { data }, width) => {
+  const red = y * (width * 4) + x * 4; // rgba = 4 byte per pixel (reads byte as int = 0-256 = rgba)
+  return `rgba(${[red, red + 1, red + 2, red + 3].map(i => data[i]).join(",")})`;
+}
+
+// Load file as picture
+document.getElementById('picField').addEventListener("change", evt => {
+  const tgt = evt.target || window.event.srcElement;
+  const [file] = tgt.files;
+  const fr = new FileReader();
+  fr.addEventListener("load", () => {
+    // Triggers drawing.onload ine 97
+    drawing.src = fr.result;
+  });
+  fr.readAsDataURL(file);
+});
+
+drawing.addEventListener("load", async () => {
+  const w = canvas.width = widthPicker.value;
+  const h = canvas.height = heightPicker.value;
+  context.drawImage(drawing, 0, 0, w, h);
+  const imageData = context.getImageData(0, 0, w, h);
+  pixelCanvas.innerHTML = "";
+  for (let i = 0; i < h; i++) {
+    // Let the browser draw each row individually for effect
+    // Note: Without this the browser will freeze for bigger resolutions
+    await new Promise(res => window.requestAnimationFrame(res));
+    const tr = document.createElement("tr");
+    for (let n = 0; n < w; n++) {
+      // Use string + innerHTML for performance
+      tr.innerHTML += `<td style="background-color: ${getPixel(n, i, imageData, w)};"></td>`;
+    }
+    pixelCanvas.appendChild(tr);
+  }
+});
